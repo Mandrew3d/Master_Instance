@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 3),
+    "version": (1, 0),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -449,7 +449,10 @@ def update_addon():
                 print(line+' ------>'+lines_t2[i])
                 break
             i+=1
-        
+        if t1 == t2:
+            print('Git = Inst')
+        else:
+            print('Changes')
     else:
         print('Error downloading file')
             
