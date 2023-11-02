@@ -19,6 +19,8 @@ from mathutils import Vector
 import os
 import addon_utils
 import requests
+import imp
+import sys
 
 langs = {
     'es': {
@@ -474,6 +476,14 @@ def update_addon():
             os.replace(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
             
             #os.rename(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
+#            reloadable = (module for module in sys.modules.values()
+#                  if hasattr(module, '__file__') and
+#                     module != my_module and
+#                     (module.__file__.endswith('.py') or
+#                      module.__file__.endswith('.pyc')))
+#            for module in reloadable:           
+#            imp.reload(sys.modules['Master_Instance-main'])
+            sys.modules['Master_Instance-main'].update_addon()   
     else:
         print('Error downloading file')
             
