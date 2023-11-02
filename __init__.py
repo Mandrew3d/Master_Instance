@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 0),
+    "version": (1, 2),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -483,6 +483,22 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
         
         text = "Link '" + str(c_name) + "' Collection"
         col.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
+
+#Addon Updater
+def update_addon():
+    print('hello')
+    
+class MInstance_Addon_Updater(Operator):
+    bl_idname = "minstance.addon_upd"
+    bl_label = "Update"
+    bl_description = "Update Addon from Github"
+    #bl_options = {'REGISTER', 'UNDO'} 
+    
+        
+    def execute(self, context):
+        update_addon()
+        return {'FINISHED'}   
+    
 #Menu
 # menu containing all tools
 class VIEW3D_MT_object_mode_minstance(bpy.types.Menu):
@@ -555,7 +571,19 @@ def menu_func_minstance(self, context):
     layout.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
     self.layout.separator() 
         
-           
+
+class MInstance_Preferences(bpy.types.AddonPreferences):
+    """Demo bare-bones preferences"""
+    
+    bl_idname = __name__
+    #bl_label = "Instance Master"
+    # Addon updater preferences.
+ 
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        row.operator("minstance.addon_upd", icon = "IMPORT")
+                   
 classes = [
     MAKE_OT_Instance,
     GET_OT_Collection,
@@ -566,8 +594,9 @@ classes = [
     Paste_OT_Object_As_Intance,
        
     MINSTANCE_PT_Operators,
+    MInstance_Addon_Updater,
     VIEW3D_MT_object_mode_minstance,
-
+    MInstance_Preferences,
         
 ]
 
