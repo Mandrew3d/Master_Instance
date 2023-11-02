@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 2),
+    "version": (1, 3),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -18,6 +18,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Vector
 import os
 import addon_utils
+import requests
 
 langs = {
     'es': {
@@ -405,6 +406,63 @@ class Save_OT_File(Operator):
     def execute(self, context):
         paste_object(self, context)
         return {'FINISHED'}    
+
+#Addon Updater
+def update_addon():
+    #print('hello')
+    url = 'https://raw.githubusercontent.com/mandrew3d/Master_Instance/main/__init__.py'
+    response = requests.get(url, stream=True)
+    
+    
+    addon_path = get_addon_folder(False)
+    path = os.path.join(addon_path, '__init__.py')
+    #path = addon_path + '__init__.py'
+    
+    if response.status_code == 200:
+
+        #read instaled addon init        
+        f_path = path
+
+        file = open(f_path, "r")
+        
+        inst_addon = file.read()
+        file.close()   
+        
+        #read git addon init   
+        git_addon = response.text
+
+        print('///////////////////////////////')
+        
+        t1 = inst_addon
+        t2 = git_addon
+        
+        lines_t1=[]
+        lines_t1=t1.split('\n')
+        
+        lines_t2=[]
+        lines_t2=t2.split('\n')
+        
+        i=0
+        
+        for line in lines_t1:
+            if line != lines_t2[i]:
+                print(line+' ------>'+lines_t2[i])
+                break
+            i+=1
+        
+    else:
+        print('Error downloading file')
+            
+class MInstance_Addon_Updater(Operator):
+    bl_idname = "minstance.addon_upd"
+    bl_label = "Update"
+    bl_description = "Update Addon from Github"
+    #bl_options = {'REGISTER', 'UNDO'} 
+    
+        
+    def execute(self, context):
+        update_addon()
+        return {'FINISHED'}   
         
 class MINSTANCE_PT_Operators(bpy.types.Panel):
     
@@ -484,20 +542,6 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
         text = "Link '" + str(c_name) + "' Collection"
         col.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
 
-#Addon Updater
-def update_addon():
-    print('hello')
-    
-class MInstance_Addon_Updater(Operator):
-    bl_idname = "minstance.addon_upd"
-    bl_label = "Update"
-    bl_description = "Update Addon from Github"
-    #bl_options = {'REGISTER', 'UNDO'} 
-    
-        
-    def execute(self, context):
-        update_addon()
-        return {'FINISHED'}   
     
 #Menu
 # menu containing all tools
