@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 1),
+    "version": (1, 2),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -412,7 +412,7 @@ class Save_OT_File(Operator):
 #Addon Updater
 def update_addon():
     #print('hello')
-    url = 'https://raw.githubusercontent.com/mandrew3d/Master_Instance/main/__init__.py'
+    url = 'https://raw.githubusercontent.com/Mandrew3d/Master_Instance/main/__init__.py'
     response = requests.get(url, stream=True)
     
     
