@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 1),
+    "version": (1, 3),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -452,9 +452,28 @@ def update_addon():
         if t1 == t2:
             print('Git = Inst')
         else:
-            file = open(f_path, "w")
-            f.write(git_addon)
-            file.close() 
+            #file = open(f_path, "w")
+            #f.write(git_addon)
+            #file.close()
+                # путь к файлу
+            filePath = addon_path
+
+            # создание нового файла
+            newFile = open(os.path.join(filePath, "__init__UPD.py"), "w")
+            newFile.write(git_addon)
+            newFile.close()
+
+            # удаление старого файла
+            oldFile = os.path.join(filePath, "__init__.py")
+            #os.rename(os.path.join(filePath, "__init__.py"), os.path.join(filePath, "__init__OLD.py"))
+            #os.rename(os.path.join(filePath, "__init__.py"), os.path.join(filePath, "__init__DELETE.py"))
+            
+
+            # переименование нового файла
+            
+            os.replace(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
+            
+            #os.rename(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
     else:
         print('Error downloading file')
             
