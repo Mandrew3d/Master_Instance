@@ -1,8 +1,8 @@
 # Master_Instance
 Blender Addon for easy working with instances.
-This addon adds almost nothing new to the blender functionality, but greatly simplifies working with instances
+This addon adds almost nothing new to the blender functionality, but greatly simplifies working with instances.
 
-All addon funcrions is located in N-Panel and in object context menu
+All addon funcrions is located in N-Panel and object context menu.
 
 There are all functions of this addon:
 1. Make Instance Collection ( Use to make collection instance frome selected objects )
