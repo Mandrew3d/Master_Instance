@@ -330,7 +330,8 @@ def link_collection(c_path,c_name):
     master_collection = bpy.context.scene.collection
     
     blendFile = c_path
-    
+
+    ref_cols = c_name
     with bpy.data.libraries.load(blendFile) as (data_from, data_to):
         data_to.collections = data_from.collections
         
@@ -340,20 +341,22 @@ def link_collection(c_path,c_name):
         i = 0
         col_ind = 0
         for col in data_to.collections:
-            if col.name == col_name:
+            if col.name in ref_cols:
                 col_ind = i
-                break
+                
+                new_coll = data_to.collections[col_ind]
+                instance = bpy.data.objects.new(new_coll.name, None)
+                instance.instance_type = 'COLLECTION'
+                instance.instance_collection = new_coll
+                master_collection.objects.link(instance)
+                instance.select_set(True)
+                bpy.context.view_layer.objects.active = instance 
+            
             i +=1
             print(col_name)
             print(col.name)
                 
-        new_coll = data_to.collections[col_ind]
-        instance = bpy.data.objects.new(new_coll.name, None)
-        instance.instance_type = 'COLLECTION'
-        instance.instance_collection = new_coll
-        master_collection.objects.link(instance)
-        instance.select_set(True)
-        bpy.context.view_layer.objects.active = instance  
+     
 
           
 def try_convert_to_list(list):
