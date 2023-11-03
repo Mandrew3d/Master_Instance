@@ -465,6 +465,7 @@ class MInstance_Addon_Updater(Operator):
     def execute(self, context):
         update_addon(self)
         return {'FINISHED'}   
+ 
 
 #Menu Settings
 class VIEW3D_MT_InstanceM_Settings(bpy.types.Menu):
@@ -479,11 +480,17 @@ class VIEW3D_MT_InstanceM_Settings(bpy.types.Menu):
         layout.label(text="Settings:")
         
         
-        col = layout.column()
         layout.separator()
+        col = layout.column()
          
         col.operator("minstance.addon_upd", icon = "URL") 
-        
+         
+        op = col.operator(
+            'wm.url_open',
+            text='Contact Me',
+            icon='CURRENT_FILE'
+            )
+        op.url = 'https://t.me/Mandrew3d'
                 
 class MINSTANCE_PT_Operators(bpy.types.Panel):
     
@@ -563,8 +570,10 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
         text = "Link '" + str(c_name) + "' Collection"
         col.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
         
+        
+        #settings
         row = layout.row()
-        row.menu("VIEW3D_MT_InstanceM_Settings", icon = "MODIFIER", text = '' )
+        row.menu("VIEW3D_MT_InstanceM_Settings", icon = "PREFERENCES", text = '' )
 
             
 #Menu
