@@ -9,7 +9,7 @@ bl_info = {
     "doc_url": "https://github.com/Mandrew3d/Master_Instance",
     "category": "Mods",
 }
-addon_name = 'Instance Master'
+
 
 
 import bpy
@@ -245,17 +245,19 @@ class RELOAD_OT_Linked(Operator):
 
 #Get Path Of Selected Object
 def get_addon_folder(add_buffer):
+    addon_name = bl_info['name']
+    s_path =''
     for mod in addon_utils.modules():
         if mod.bl_info['name'] == addon_name:
             filepath = mod.__file__
-            #print (filepath)
+            print (filepath)
             s_path = filepath[:-len(bpy.path.basename(filepath))]
-            #print(s_path)
+            print(s_path)
         else:
             pass
     if add_buffer:
        s_path += 'MasterInstance_Buffer.txt'   
-        
+    print(s_path)    
     return s_path
     
 def get_object_path(self, context):
@@ -512,7 +514,7 @@ class VIEW3D_MT_InstanceM_Settings(bpy.types.Menu):
         op.url = 'https://t.me/Mandrew3d'
                 
 class MINSTANCE_PT_Operators(bpy.types.Panel):
-    
+    addon_name = 'Master_Instance-main'
     bl_label = addon_name
     bl_category = "M-Instance"
     bl_space_type = 'VIEW_3D'
