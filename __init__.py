@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 5),
+    "version": (1, 6),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -19,7 +19,7 @@ from mathutils import Vector
 import os
 import addon_utils
 import requests
-import imp
+#import imp
 import sys
 
 langs = {
@@ -444,7 +444,7 @@ def update_addon(self):
         
         if t1 == t2:
             self.report({'INFO'}, 'Is the latest version')   
-            print('Git = Inst')
+            #print('Git = Inst')
         else:
             
             
@@ -458,8 +458,9 @@ def update_addon(self):
  
             
             os.replace(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
-
-            sys.modules['Master_Instance-main'].update_addon()   
+            
+            bpy.ops.script.reload()
+            #sys.modules['Master_Instance-main'].update_addon()   
     else:
         print('Error downloading file')
          
