@@ -256,7 +256,7 @@ def get_addon_folder(add_buffer):
         #print(mod.bl_info['name'])
         
         if mod.bl_info['name'] == 'Instance Master':
-            print("TRUUUUUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+            #print("TRUUUUUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
             filepath = mod.__file__
             #print (filepath)
             s_path = filepath[:-len(bpy.path.basename(filepath))]
@@ -429,20 +429,20 @@ class Save_OT_File(Operator):
 #Addon Updater
 def update_addon(self):
     #get raw from git
-#    url = 'https://raw.githubusercontent.com/Mandrew3d/Master_Instance/main/__init__.py'
-#    response = requests.get(url, stream=True)
+    url = 'https://raw.githubusercontent.com/Mandrew3d/Master_Instance/main/__init__.py'
+    response = requests.get(url, stream=True)
     
-    #YD
-    base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
-    public_key = 'https://disk.yandex.ru/d/zi8DD3Duq8qA-g'  # Сюда вписываете вашу ссылку
+#    #YD
+#    base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
+#    public_key = 'https://disk.yandex.ru/d/zi8DD3Duq8qA-g'  # Сюда вписываете вашу ссылку
 
-    # Получаем загрузочную ссылку
-    final_url = base_url + urlencode(dict(public_key=public_key))
-    response = requests.get(final_url)
-    download_url = response.json()['href']
+#    # Получаем загрузочную ссылку
+#    final_url = base_url + urlencode(dict(public_key=public_key))
+#    response = requests.get(final_url)
+#    download_url = response.json()['href']
 
-    # Загружаем файл и сохраняем его
-    response = requests.get(download_url, stream=True)
+#    # Загружаем файл и сохраняем его
+#    response = requests.get(download_url, stream=True)
     
     addon_path = get_addon_folder(False)
     path = os.path.join(addon_path, '__init__.py')
