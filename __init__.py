@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master',
     "author": "Mandrew3D",
-    "version": (1, 7),
+    "version": (1, 8),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -256,16 +256,17 @@ def get_addon_folder(add_buffer):
         #print(mod.bl_info['name'])
         
         if mod.bl_info['name'] == 'Instance Master':
-            
+            #print("TRUUUUUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
             filepath = mod.__file__
-            
+            #print (filepath)
             s_path = filepath[:-len(bpy.path.basename(filepath))]
-            
+            #print(s_path)
         else:
             pass
     if add_buffer:
        s_path += 'MasterInstance_Buffer.txt'   
-        
+    #s_path = bpy.path.abspath(s_path)
+    #print(s_path)    
     return s_path
     
 def get_object_path(self, context):
@@ -334,28 +335,69 @@ def link_collection(c_path,c_name):
     print(ref_cols)
     bpy.ops.object.select_all(action='DESELECT')
 
-    col_for_instance = []
+#    col_for_instance = []
+#    with bpy.data.libraries.load(c_path, link = True) as (data_from, data_to):
+#        
+#        #data_to.collections = data_from.collections
+#        for col in data_from.collections:
+#            if col in ref_cols:
+#                print(col)
+#                data_to.collections.append(col)
+#                    
+#    
+#    print(data_to.collections)
+    
+#    bpy.ops.wm.link(c_path, filename=  ref_cols[0])  
+
+    # append active collections
+    
     with bpy.data.libraries.load(c_path, link = True) as (data_from, data_to):
-        print(data_from.collections)
-        i = 0
-        for col in data_from.collections:
-            print(col)
-            if col in ref_cols:
-                col_for_instance.append(col)
-                #data_to.collections.append(col)
-                # if col not in bpy.data.collections:
-                data_to.collections.append(col)
-                #     print('Exist')
-                
-                    
-                    
-    for colection in col_for_instance:
-        instance = bpy.data.objects.new(colection, None)
+        data_to.collections = [
+            name for name in data_from.collections if name in ref_cols]
+        #print(data_to.collections)
+        
+    # link appended coolections to master collection
+    for col in data_to.collections:
+        print(col)
+        instance = bpy.data.objects.new(col.name, None)
         instance.instance_type = 'COLLECTION'
-        instance.instance_collection = bpy.data.collections[colection]
+        instance.instance_collection = col
         master_collection.objects.link(instance)
         instance.select_set(True)
-        bpy.context.view_layer.objects.active = instance 
+        bpy.context.view_layer.objects.active = instance     
+            
+        print(col)
+        #bpy.context.scene.collection.children.link(collection)
+        #link_collection_to_collection(blendFileName, collection)
+        
+        
+        #print('before')
+        #print(data_from.collections)
+        #print(data_to.collections)
+    #print('After')
+    
+    #print(data_from.collections)
+    #print(data_to.collections)
+#        print(data_from.collections)
+#        i = 0
+#        for col in data_from.collections:
+#            print(col)
+#            if col in ref_cols:
+#                col_for_instance.append(col)
+#                #data_to.collections.append(col)
+#                if col not in bpy.data.collections:
+#                    data_to.collections.append(col)
+#                    print('Exist')
+#                
+#                    
+#                    
+#    for colection in col_for_instance:
+#        instance = bpy.data.objects.new(colection, None)
+#        instance.instance_type = 'COLLECTION'
+#        instance.instance_collection = bpy.data.collections[colection]
+#        master_collection.objects.link(instance)
+#        instance.select_set(True)
+#        bpy.context.view_layer.objects.active = instance 
            
     
     #bpy.data.libraries.load(c_path) 
