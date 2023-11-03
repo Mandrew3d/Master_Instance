@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 2),
+    "version": (1, 3),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -411,14 +411,13 @@ class Save_OT_File(Operator):
 
 #Addon Updater
 def update_addon(self):
-    #print('hello')
+    #get raw from git
     url = 'https://raw.githubusercontent.com/Mandrew3d/Master_Instance/main/__init__.py'
     response = requests.get(url, stream=True)
     
     
     addon_path = get_addon_folder(False)
     path = os.path.join(addon_path, '__init__.py')
-    #path = addon_path + '__init__.py'
     
     if response.status_code == 200:
 
@@ -433,60 +432,31 @@ def update_addon(self):
         #read git addon init   
         git_addon = response.text
 
-        print('///////////////////////////////')
         
         t1 = inst_addon
         t2 = git_addon
         
-        lines_t1=[]
-        lines_t1=t1.split('\n')
-        
-        lines_t2=[]
-        lines_t2=t2.split('\n')
-        
-        i=0
-        
-        for line in lines_t1:
-            if line != lines_t2[i]:
-                print(line+' ------>'+lines_t2[i])
-                break
-            i+=1
         if t1 == t2:
+            self.report({'INFO'}, 'Is the latest version')   
             print('Git = Inst')
         else:
-            #file = open(f_path, "w")
-            #f.write(git_addon)
-            #file.close()
-                # путь к файлу
+            
+            
             filePath = addon_path
 
-            # создание нового файла
+            
             newFile = open(os.path.join(filePath, "__init__UPD.py"), "w")
             newFile.write(git_addon)
             newFile.close()
 
-            # удаление старого файла
-            oldFile = os.path.join(filePath, "__init__.py")
-            #os.rename(os.path.join(filePath, "__init__.py"), os.path.join(filePath, "__init__OLD.py"))
-            #os.rename(os.path.join(filePath, "__init__.py"), os.path.join(filePath, "__init__DELETE.py"))
-            
-
-            # переименование нового файла
+ 
             
             os.replace(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
-            
-            #os.rename(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
-#            reloadable = (module for module in sys.modules.values()
-#                  if hasattr(module, '__file__') and
-#                     module != my_module and
-#                     (module.__file__.endswith('.py') or
-#                      module.__file__.endswith('.pyc')))
-#            for module in reloadable:           
-#            imp.reload(sys.modules['Master_Instance-main'])
+
             sys.modules['Master_Instance-main'].update_addon()   
     else:
         print('Error downloading file')
-        self.report({'INFO'}, 'Is the latest version')    
+         
 class MInstance_Addon_Updater(Operator):
     bl_idname = "minstance.addon_upd"
     bl_label = "Update"
