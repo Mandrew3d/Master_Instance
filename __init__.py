@@ -457,7 +457,7 @@ def update_addon(self):
          
 class MInstance_Addon_Updater(Operator):
     bl_idname = "minstance.addon_upd"
-    bl_label = "Update"
+    bl_label = "Update Addon"
     bl_description = "Update Addon from Github"
     #bl_options = {'REGISTER', 'UNDO'} 
     
@@ -465,7 +465,26 @@ class MInstance_Addon_Updater(Operator):
     def execute(self, context):
         update_addon(self)
         return {'FINISHED'}   
+
+#Menu Settings
+class VIEW3D_MT_InstanceM_Settings(bpy.types.Menu):
+    bl_label = "Instance Master Settings"
+    
+    def draw(self, context):
         
+        layout = self.layout
+
+        scene = context.scene
+
+        layout.label(text="Settings:")
+        
+        
+        col = layout.column()
+        layout.separator()
+         
+        col.operator("minstance.addon_upd", icon = "URL") 
+        
+                
 class MINSTANCE_PT_Operators(bpy.types.Panel):
     
     bl_label = addon_name
@@ -543,8 +562,11 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
         
         text = "Link '" + str(c_name) + "' Collection"
         col.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
+        
+        row = layout.row()
+        row.menu("VIEW3D_MT_InstanceM_Settings", icon = "MODIFIER", text = '' )
 
-    
+            
 #Menu
 # menu containing all tools
 class VIEW3D_MT_object_mode_minstance(bpy.types.Menu):
@@ -619,16 +641,13 @@ def menu_func_minstance(self, context):
         
 
 class MInstance_Preferences(bpy.types.AddonPreferences):
-    """Demo bare-bones preferences"""
-    
     bl_idname = __name__
-    #bl_label = "Instance Master"
-    # Addon updater preferences.
+
  
     def draw(self, context):
         layout = self.layout
         row = layout.row()
-        row.operator("minstance.addon_upd", icon = "IMPORT")
+        row.operator("minstance.addon_upd", icon = "URL")
                    
 classes = [
     MAKE_OT_Instance,
@@ -641,6 +660,7 @@ classes = [
        
     MINSTANCE_PT_Operators,
     MInstance_Addon_Updater,
+    VIEW3D_MT_InstanceM_Settings,
     VIEW3D_MT_object_mode_minstance,
     MInstance_Preferences,
         
