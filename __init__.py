@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master',
     "author": "Mandrew3D",
-    "version": (1, 2),
+    "version": (1, 3),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -247,16 +247,18 @@ class RELOAD_OT_Linked(Operator):
 def get_addon_folder(add_buffer):
     addon_name = bl_info['name']
     s_path =''
-    for mod in addon_utils.modules():
-        if mod.bl_info['name'] == addon_name:
-            filepath = mod.__file__
-            print (filepath)
-            s_path = filepath[:-len(bpy.path.basename(filepath))]
-            print(s_path)
-        else:
-            pass
+    s_path =  bpy.path.abspath(bpy.utils.user_resource("SCRIPTS") + '\\Master_Instance-main\\')
+#    for mod in addon_utils.modules():
+#        if mod.bl_info['name'] == 'Master Intance':
+#            filepath = mod.__file__
+#            print (filepath)
+#            s_path = filepath[:-len(bpy.path.basename(filepath))]
+#            print(s_path)
+#        else:
+#            pass
     if add_buffer:
        s_path += 'MasterInstance_Buffer.txt'   
+    s_path = bpy.path.abspath(s_path)
     print(s_path)    
     return s_path
     
