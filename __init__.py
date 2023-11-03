@@ -374,7 +374,6 @@ class Paste_OT_Object_As_Intance(Operator):
     bl_idname = "minstance.paste_obj_as_instance"
     bl_label = "Paste Collection As Instance"
     bl_description = "Paste copyed collection as instance"
-    #bl_options = {'REGISTER', 'UNDO'} 
     
     @classmethod
     def poll(cls, context):
@@ -399,7 +398,6 @@ class Save_OT_File(Operator):
     bl_idname = "minstance.save_file"
     bl_label = "Save File"
     bl_description = "Don't forget to save Blend file before copy. Press to Save"
-    #bl_options = {'REGISTER', 'UNDO'} 
     
     @classmethod
     def poll(cls, context):                        
