@@ -410,7 +410,7 @@ class Save_OT_File(Operator):
         return {'FINISHED'}    
 
 #Addon Updater
-def update_addon():
+def update_addon(self):
     #print('hello')
     url = 'https://raw.githubusercontent.com/Mandrew3d/Master_Instance/main/__init__.py'
     response = requests.get(url, stream=True)
@@ -486,7 +486,7 @@ def update_addon():
             sys.modules['Master_Instance-main'].update_addon()   
     else:
         print('Error downloading file')
-            
+        self.report({'INFO'}, 'Is the latest version')    
 class MInstance_Addon_Updater(Operator):
     bl_idname = "minstance.addon_upd"
     bl_label = "Update"
@@ -495,7 +495,7 @@ class MInstance_Addon_Updater(Operator):
     
         
     def execute(self, context):
-        update_addon()
+        update_addon(self)
         return {'FINISHED'}   
         
 class MINSTANCE_PT_Operators(bpy.types.Panel):
