@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master',
     "author": "Mandrew3D",
-    "version": (1, 6),
+    "version": (1, 7),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -256,17 +256,16 @@ def get_addon_folder(add_buffer):
         #print(mod.bl_info['name'])
         
         if mod.bl_info['name'] == 'Instance Master':
-            #print("TRUUUUUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+            
             filepath = mod.__file__
-            #print (filepath)
+            
             s_path = filepath[:-len(bpy.path.basename(filepath))]
-            #print(s_path)
+            
         else:
             pass
     if add_buffer:
        s_path += 'MasterInstance_Buffer.txt'   
-    #s_path = bpy.path.abspath(s_path)
-    #print(s_path)    
+        
     return s_path
     
 def get_object_path(self, context):
@@ -344,9 +343,9 @@ def link_collection(c_path,c_name):
             if col in ref_cols:
                 col_for_instance.append(col)
                 #data_to.collections.append(col)
-                if col not in bpy.data.collections:
-                    data_to.collections.append(col)
-                    print('Exist')
+                # if col not in bpy.data.collections:
+                data_to.collections.append(col)
+                #     print('Exist')
                 
                     
                     
