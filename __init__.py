@@ -1,11 +1,11 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 4),
+    "version": (1, 5),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
-    "warning": "",
+    "warning": "https://t.me/Mandrew3d",
     "doc_url": "https://github.com/Mandrew3d/Master_Instance",
     "category": "Mods",
 }
