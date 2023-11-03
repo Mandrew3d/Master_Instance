@@ -9,8 +9,8 @@ bl_info = {
     "doc_url": "https://github.com/Mandrew3d/Master_Instance",
     "category": "Mods",
 }
-
 addon_name = 'Instance Master'
+
 
 import bpy
 from bpy.types import Operator
@@ -177,7 +177,7 @@ class GET_OT_Collection(Operator):
         get_collection(self, context)
         return {'FINISHED'}
 
-#Open Linced File
+#Open Linked File
 def open_linked(self, context):
     open_f = self.open_f
     
@@ -265,7 +265,15 @@ def get_object_path(self, context):
     
     o_tag = 'MasterInstance_TAG'
     o_path = bpy.data.filepath
-    o_col_name = context.object.users_collection[0].name
+    
+    cols_to_get = []
+    objs = context.selected_objects
+    for obj in objs:
+        if obj.users_collection[0].name not in cols_to_get:
+            if obj.users_collection[0] != context.scene.collection:
+                cols_to_get.append(obj.users_collection[0].name)
+                
+    o_col_name = cols_to_get
     
     o_buffer = [o_tag,o_path,o_col_name]
     o_buffer = str(o_buffer)
@@ -282,8 +290,8 @@ def get_object_path(self, context):
             
 class Get_OT_Object_Path(Operator):
     bl_idname = "minstance.get_obj_path"
-    bl_label = "Copy Collection As Instance"
-    bl_description = "Copy active object as instance"
+    bl_label = "Copy Collections As Instances"
+    bl_description = "Copy selected objects as instances"
     #bl_options = {'REGISTER', 'UNDO'}
     
 
@@ -315,26 +323,26 @@ def link_collection(c_path,c_name):
     with bpy.data.libraries.load(blendFile) as (data_from, data_to):
         data_to.collections = data_from.collections
         
-    col_name = c_name
-
-    i = 0
-    col_ind = 0
-    for col in data_to.collections:
-        if col.name == col_name:
-            col_ind = i
-            break
-        i +=1
-        print(col_name)
-        print(col.name)
-            
     bpy.ops.object.select_all(action='DESELECT')
-    new_coll = data_to.collections[col_ind]
-    instance = bpy.data.objects.new(new_coll.name, None)
-    instance.instance_type = 'COLLECTION'
-    instance.instance_collection = new_coll
-    master_collection.objects.link(instance)
-    instance.select_set(True)
-    bpy.context.view_layer.objects.active = instance  
+    for colection in data_to.collections:
+        col_name = collection.name
+        i = 0
+        col_ind = 0
+        for col in data_to.collections:
+            if col.name == col_name:
+                col_ind = i
+                break
+            i +=1
+            print(col_name)
+            print(col.name)
+                
+        new_coll = data_to.collections[col_ind]
+        instance = bpy.data.objects.new(new_coll.name, None)
+        instance.instance_type = 'COLLECTION'
+        instance.instance_collection = new_coll
+        master_collection.objects.link(instance)
+        instance.select_set(True)
+        bpy.context.view_layer.objects.active = instance  
 
           
 def try_convert_to_list(list):
@@ -568,14 +576,17 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
             c_name = clipboard[2]                        
         
         text = "Link '" + str(c_name) + "' Collection"
+        #col.alert  = True
         col.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
         
         
         #settings
         row = layout.row()
         row.menu("VIEW3D_MT_InstanceM_Settings", icon = "PREFERENCES", text = '' )
-
-            
+        ver = bl_info.get('version')
+        ver = str(ver[0])+('.')+str(ver[1])
+        
+        row.label(text = 'Version: ' + ver)  
 #Menu
 # menu containing all tools
 class VIEW3D_MT_object_mode_minstance(bpy.types.Menu):
