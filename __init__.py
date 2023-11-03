@@ -335,7 +335,7 @@ def link_collection(c_path,c_name):
         data_to.collections = data_from.collections
         
     bpy.ops.object.select_all(action='DESELECT')
-    for colection in data_to.collections:
+    for collection in data_to.collections:
         col_name = collection.name
         i = 0
         col_ind = 0
