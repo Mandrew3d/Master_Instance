@@ -1,11 +1,11 @@
 bl_info = {
     "name": 'Instance Master',
     "author": "Mandrew3D",
-    "version": (1, 1),
+    "version": (1, 2),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
-    "warning": "https://t.me/Mandrew3d",
+    "warning": "",
     "doc_url": "https://github.com/Mandrew3d/Master_Instance",
     "category": "Mods",
 }
@@ -431,7 +431,7 @@ def update_addon(self):
     download_url = response.json()['href']
 
     # Загружаем файл и сохраняем его
-    response = requests.get(download_url)
+    response = requests.get(download_url, stream=True)
     
     addon_path = get_addon_folder(False)
     path = os.path.join(addon_path, '__init__.py')
