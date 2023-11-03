@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master',
     "author": "Mandrew3D",
-    "version": (1, 3),
+    "version": (1, 4),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -247,19 +247,26 @@ class RELOAD_OT_Linked(Operator):
 def get_addon_folder(add_buffer):
     addon_name = bl_info['name']
     s_path =''
-    s_path =  bpy.path.abspath(bpy.utils.user_resource("SCRIPTS") + '\\Master_Instance-main\\')
-#    for mod in addon_utils.modules():
-#        if mod.bl_info['name'] == 'Master Intance':
-#            filepath = mod.__file__
-#            print (filepath)
-#            s_path = filepath[:-len(bpy.path.basename(filepath))]
-#            print(s_path)
-#        else:
-#            pass
+    #s_path =  bpy.path.abspath(bpy.utils.user_resource("SCRIPTS") + '\\Master_Instance-main\\')
+    #modu = addon_utils.modules()
+    
+    #print(modu)
+    for mod in addon_utils.modules():
+        #print(mod)
+        #print(mod.bl_info['name'])
+        
+        if mod.bl_info['name'] == 'Instance Master':
+            print("TRUUUUUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+            filepath = mod.__file__
+            #print (filepath)
+            s_path = filepath[:-len(bpy.path.basename(filepath))]
+            #print(s_path)
+        else:
+            pass
     if add_buffer:
        s_path += 'MasterInstance_Buffer.txt'   
-    s_path = bpy.path.abspath(s_path)
-    print(s_path)    
+    #s_path = bpy.path.abspath(s_path)
+    #print(s_path)    
     return s_path
     
 def get_object_path(self, context):
@@ -582,6 +589,7 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
                 row.operator("minstance.save_file", icon = "ERROR", text = '')  
         
         file_path = get_addon_folder(True)
+        #file_path = bpy.path.abspath(bpy.utils.user_resource("SCRIPTS") + '\\Master_Instance-main\\MasterInstance_Buffer.txt')
         
         with open(file_path, "r") as file:
             clipboard = file.read()   
