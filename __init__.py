@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master',
     "author": "Mandrew3D",
-    "version": (1, 5),
+    "version": (1, 6),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -316,7 +316,7 @@ class Get_OT_Object_Path(Operator):
                 if context.object.users_collection[0] != context.scene.collection:
                     if bpy.data.is_saved:
                         chek = True
-        return chek
+        return chek 
 
         
     def execute(self, context):
@@ -329,32 +329,63 @@ def link_collection(c_path,c_name):
     
     master_collection = bpy.context.scene.collection
     
-    blendFile = c_path
+    #blendFile = c_path
 
     ref_cols = c_name
-    with bpy.data.libraries.load(blendFile) as (data_from, data_to):
-        data_to.collections = data_from.collections
-        
+    print(ref_cols)
     bpy.ops.object.select_all(action='DESELECT')
-    for collection in data_to.collections:
-        col_name = collection.name
+
+    col_for_instance = []
+    with bpy.data.libraries.load(c_path, link = True) as (data_from, data_to):
+        print(data_from.collections)
         i = 0
-        col_ind = 0
-        for col in data_to.collections:
-            if col.name in ref_cols:
-                col_ind = i
+        for col in data_from.collections:
+            print(col)
+            if col in ref_cols:
+                col_for_instance.append(col)
+                #data_to.collections.append(col)
+                if col not in bpy.data.collections:
+                    data_to.collections.append(col)
+                    print('Exist')
                 
-                new_coll = data_to.collections[col_ind]
-                instance = bpy.data.objects.new(new_coll.name, None)
-                instance.instance_type = 'COLLECTION'
-                instance.instance_collection = new_coll
-                master_collection.objects.link(instance)
-                instance.select_set(True)
-                bpy.context.view_layer.objects.active = instance 
-            
-            i +=1
-            print(col_name)
-            print(col.name)
+                    
+                    
+    for colection in col_for_instance:
+        instance = bpy.data.objects.new(colection, None)
+        instance.instance_type = 'COLLECTION'
+        instance.instance_collection = bpy.data.collections[colection]
+        master_collection.objects.link(instance)
+        instance.select_set(True)
+        bpy.context.view_layer.objects.active = instance 
+           
+    
+    #bpy.data.libraries.load(c_path) 
+#    with bpy.data.libraries.load(c_path) as (data):
+#        data = data.collection
+     
+#    for col in  data_to.collections:
+#        print(col)  
+#    bpy.ops.object.select_all(action='DESELECT')
+#    for collection in data_to.collections:
+#        print(collection.name)
+#        col_name = collection.name
+#        i = 0
+#        col_ind = 0
+#        for col in data_to.collections:
+#            if col.name in ref_cols:
+#                col_ind = i
+#                
+#                new_coll = data_to.collections[col_ind]
+#                instance = bpy.data.objects.new(new_coll.name, None)
+#                instance.instance_type = 'COLLECTION'
+#                instance.instance_collection = new_coll
+#                master_collection.objects.link(instance)
+#                instance.select_set(True)
+#                bpy.context.view_layer.objects.active = instance 
+#            
+#            i +=1
+#            #print(col_name)
+#            #print(col.name)
                 
      
 
@@ -399,17 +430,8 @@ class Paste_OT_Object_As_Intance(Operator):
     
     @classmethod
     def poll(cls, context):
-        chek = False
-        file_path = get_addon_folder(True)
         
-        with open(file_path, "r") as file:
-            clipboard = file.read() 
-        clipboard = try_convert_to_list(clipboard)            
-        if isinstance(clipboard, list):   
-            if clipboard[0] == 'MasterInstance_TAG':
-                chek = True
-                        
-        return chek
+        return True
         
     def execute(self, context):
         paste_object(self, context)
@@ -584,7 +606,7 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
                         c_text = "Get '" + col_name.name + "' Collection"
                     else:
                         c_text = "'Scene Collection' Cannot Be Instanced"
-        
+        #c_text = ''
         row = col.row(align = True)
         row.operator("minstance.get_obj_path", icon = "COPYDOWN", text = c_text)  
         if bpy.data.is_saved:
@@ -600,7 +622,7 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
         c_name = 'No Object in Copy'
         if clipboard is not None:
             c_name = clipboard[2]                        
-        
+        #c_name = ''
         text = "Link '" + str(c_name) + "' Collection"
         #col.alert  = True
         col.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
