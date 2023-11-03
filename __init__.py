@@ -1,7 +1,7 @@
 bl_info = {
     "name": 'Instance Master' ,
     "author": "Mandrew3D",
-    "version": (1, 6),
+    "version": (1, 7),
     "blender": (3, 6, 5),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
@@ -458,9 +458,8 @@ def update_addon(self):
  
             
             os.replace(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
-            
             bpy.ops.script.reload()
-            #sys.modules['Master_Instance-main'].update_addon()   
+            #sys.modules['Master_Instance-main'].update_addon() 
     else:
         print('Error downloading file')
          
@@ -688,7 +687,7 @@ classes = [
 ]
 
 
-def register():       
+def register():        
     #bpy.app.translations.register(__name__, langs)
     for cl in classes:
         register_class(cl)
