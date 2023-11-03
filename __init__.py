@@ -19,7 +19,6 @@ from mathutils import Vector
 import os
 import addon_utils
 import requests
-#import imp
 import sys
 
 langs = {
