@@ -10,5 +10,5 @@ There are all functions of this addon:
 3. Link from file ( Default Blender Function. It's just placed here for quick access ) 
 4. Open Relatiive File ( Opening blend file of active object (linked instance) ) 
 5. Update Instance ( Update link of selected instance)
-6. Get Collectiom ( Get collection of active object for paste in next function)
-7. Link Collection ( Paste object as linked collection of previous step )
+6. Get Collectiom ( Get collections of selected objects for paste in next function)
+7. Link Collection ( Paste object as linked collections of previous step )
