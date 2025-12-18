@@ -2,7 +2,7 @@ addon_name = 'Instance Master'
 bl_info = {
     "name": addon_name ,
     "author": "Mandrew3D",
-    "version": (1, 0),
+    "version": (2, 0),
     "blender": (5, 0, 1),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
