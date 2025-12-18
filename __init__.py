@@ -1,15 +1,15 @@
+addon_name = 'Instance Master'
 bl_info = {
-    "name": 'Instance Master',
+    "name": addon_name ,
     "author": "Mandrew3D",
-    "version": (1, 8),
-    "blender": (3, 6, 5),
+    "version": (1, 0),
+    "blender": (5, 0, 1),
     "location": "View3D > UI > M_Instance",
     "description": "Addon that helps to work with various types of instances ",
     "warning": "",
-    "doc_url": "https://github.com/Mandrew3d/Master_Instance",
+    "doc_url": "",
     "category": "Mods",
 }
-
 
 
 import bpy
@@ -18,96 +18,146 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Vector
 import os
 import addon_utils
-import requests
-import sys
-from urllib.parse import urlencode
+from mathutils import Vector
 
-langs = {
-    'es': {
-        ('*', 'Test text in Blender UI'): 'Prueba de texto en la interfaz de usuario de Blender',
-        ('Operator', 'Operator name'): 'Nombre del operador',
-        ('*', 'Test text for printing in system console'): 'Prueba de texto para imprimir en la consola del sistema',
-        ('*', 'Panel Header'): 'Encabezado del panel',
-        ('*', 'Localization test'): 'Prueba de localización'
-    },
-    'ja_JP': {
-        ('*', 'Test text in Blender UI'): 'Blender ユーザーインターフェースでテキストをテストする',
-        ('Operator', 'Operator name'): 'オペレーター名',
-        ('*', 'Test text for printing in system console'): 'システムコンソールで印刷するためのテストテキスト',
-        ('*', 'Panel Header'): 'パネルヘッダー',
-        ('*', 'Localization test'): 'ローカリゼーションテスト'
-    }
-}
+import json
+import tempfile
+import time
+
+
+def get_z_distance_to_floor(objs):
+    ctx = bpy.context
+    active = ctx.active_object
+    if not active:
+        raise RuntimeError("Нет активного объекта")
+
+    depsgraph = ctx.evaluated_depsgraph_get()
+    min_z = None
+
+    for obj in ctx.selected_objects:
+        if obj.type != 'MESH':
+            continue
+
+        eval_obj = obj.evaluated_get(depsgraph)
+        mesh = eval_obj.to_mesh()
+        mw = eval_obj.matrix_world
+
+        for v in mesh.vertices:
+            z = (mw @ v.co).z
+            min_z = z if min_z is None else min(min_z, z)
+
+        eval_obj.to_mesh_clear()
+
+    if min_z is None:
+        raise RuntimeError("Нет выделенных меш-объектов")
+
+    return min_z - active.matrix_world.to_translation().z
+
+
+def hide_collection_by_name(col_name: str):
+    """
+    Скрывает (exclude) коллекцию с именем col_name в текущем View Layer.
+    """
+    def find_layer_collection(layer_collection, name):
+        if layer_collection.collection.name == name:
+            return layer_collection
+        for child in layer_collection.children:
+            result = find_layer_collection(child, name)
+            if result:
+                return result
+        return None
+
+    layer_coll = find_layer_collection(bpy.context.view_layer.layer_collection, col_name)
+    if layer_coll:
+        layer_coll.exclude = True
+    else:
+        print(f"Коллекция '{col_name}' не найдена в текущем View Layer")
+
+
+def move_selected_to_collection(col_name):
+    # Получаем или создаём коллекцию
+    col = bpy.data.collections.get(col_name)
+    if col is None:
+        col = bpy.data.collections.new(col_name)
+        bpy.context.scene.collection.children.link(col)
+        
+    # Перенос объектов
+    for obj in bpy.context.selected_objects:
+        # Удаляем из всех текущих коллекций
+        for c in obj.users_collection:
+            c.objects.unlink(obj)
+        # Добавляем в целевую
+        col.objects.link(obj)
+        
+def get_root_parent(obj):
+    if obj is None:
+        return None
+    
+    p = obj
+    while p.parent is not None:
+        p = p.parent
+    return p
 
 #Make Instance Colletion of selected objects
 def make_instance(self, context):
     col_name = self.col_name
     use_floor = self.use_floor
+    act_obj = context.object
+    iter = self.iter
     
-    act_obj_loc = bpy.context.object.matrix_world.to_translation()
     
-    add_floor = 0
+    obj = get_root_parent(act_obj)
     
-    if use_floor == True:
-        obj = bpy.context.object
-        bbox = obj.bound_box
-        bbox_world = [obj.matrix_world @ Vector(corner) for corner in bbox]
-        min_z = min(v.z for v in bbox_world)
-        add_floor = act_obj_loc[2]-min_z
-    else:
-        add_floor = 0
+#    if iter:
+#        self.col_name = 'MI_Instance_' + obj.name
+#        self.iter = False
+    
+    bpy.ops.object.select_grouped(extend=True, type='CHILDREN_RECURSIVE')
         
-            
-    
-    
-    
-    selected_objects = bpy.context.selected_objects
-    
-    #Move objs to center  
-    offset = -act_obj_loc
-    offset[2] += add_floor 
-    bpy.ops.transform.translate(value=offset)
-    
-    #create new collection with name from col_name and link to scene
-    new_collection = bpy.data.collections.new(col_name)
-    bpy.context.scene.collection.children.link(new_collection)
-   
-    #get new name usefull than name dubles    
-    end_name = new_collection.name 
-    
-    #remove objs from main col and add in new col
-    for obj in selected_objects:
-        old_collection = obj.users_collection[0]
-        old_collection.objects.unlink(obj)
-    
-    for obj in selected_objects:
-        new_collection.objects.link(obj)
-    
-    #get contex vl  
-    vl_name = bpy.context.view_layer.name
-    
-    bpy.context.scene.view_layers[vl_name].layer_collection.children[end_name].exclude = True
-    
-    
-    #make instance
-    name_f_instance = end_name + '_Instance'
-    bpy.ops.object.collection_instance_add(name=name_f_instance, collection=end_name , align='WORLD', location=(0, 0, 0), rotation=(0, 0, 0), scale=(0, 0, 0), session_uuid=0, drop_x=0, drop_y=0)
-    #old_col_name = context.object
-    context.object.name = name_f_instance
-   
-    #Move new instance to relative location
-    act_obj_loc[2] -= add_floor
-    context.object.location = act_obj_loc
 
+    bpy.ops.object.parent_set(type='OBJECT', keep_transform=True)
+    sel_objs = bpy.context.selected_objects
+    
+    move_selected_to_collection(self.col_name)
+    
+    save_loc = obj.location
+    save_rot = obj.rotation_euler
+    
+#    if use_floor:
+#        z_loc = -(get_z_distance_to_floor(sel_objs))
+#        print(z_loc)
+#    else:
+    z_loc = 0
+        
+    
+    inst_obj = bpy.ops.mesh.primitive_plane_add(enter_editmode=False, align='WORLD', location=(save_loc), rotation=(save_rot), scale=(1, 1, 1))
+    
+    
+    obj.rotation_euler = (0,0,0)
+    obj.location = (0,0, z_loc)
+    
+    bpy.ops.object.modifier_add_node_group(asset_library_type='ESSENTIALS', asset_library_identifier="", relative_asset_identifier="nodes\\geometry_nodes_essentials.blend\\NodeTree\\Geometry Input")
+    
+    inst_obj = context.active_object
+    mod = inst_obj.modifiers[0]
+    mod["Socket_6"] = 1
+    mod["Socket_3"] = bpy.data.collections[self.col_name]
+    mod["Socket_1"] = True
+    
+    #mod['Input Type']
+    inst_obj.location = inst_obj.location
+    hide_collection_by_name(self.col_name)
+    
 class MAKE_OT_Instance(Operator):
     bl_idname = "minstance.make_instance"
-    bl_label = "Make Instance Collection"
+    bl_label = "Convert to Instance"
     bl_description = "Make Instance Colletion of selected objects"
     bl_options = {'REGISTER', 'UNDO'}
     
-    col_name :  bpy.props.StringProperty(default = 'Collection')
+    col_name :  bpy.props.StringProperty(default = 'MI_Instance')
     use_floor: bpy.props.BoolProperty(default = True)
-    
+    iter: bpy.props.BoolProperty(default = True)
+        
     @classmethod
     def poll(cls, context):
         return context.active_object is not None
@@ -115,35 +165,161 @@ class MAKE_OT_Instance(Operator):
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "col_name", text = 'Name')
-        layout.prop(self, "use_floor", text = 'Drop on Floor')
-        
+        #layout.prop(self, "use_floor", text = 'Drop on Floor')
+    
+    def invoke(self, context, event):
+        self.col_name = 'MI_Instance_' + bpy.context.object.name
+        return self.execute(context)
+     
     def execute(self, context):
         make_instance(self, context)
         return {'FINISHED'}
 
 #Edit collection 
-def get_collection(self, context):
-    cont_ob = context.object
-    if cont_ob.type == 'EMPTY' and context.object.instance_collection != None:
-            
-        #get instance col name
-        s_col = cont_ob.instance_collection
+def has_geometry_input_modifier():
+    obj = bpy.context.object
+    #print('test')
+    return obj is not None and any(m.type == 'NODES' and m.name == "Geometry Input" for m in obj.modifiers)
 
-        #Unhide Collection
-        vl_name = bpy.context.view_layer.name
+def geom_input_uses_collection(obj=None, collection=None):
+    """
+    Проверяет, есть ли у объекта модификатор 'Geometry Input' и стоит ли в Socket_3 указанная коллекция.
+    :param obj: объект (по умолчанию bpy.context.object)
+    :param collection: объект bpy.types.Collection или имя коллекции
+    :return: True/False
+    """
+    if obj is None:
+        obj = bpy.context.object
+    if obj is None or collection is None:
+        return False
 
-        bpy.context.scene.view_layers[vl_name].layer_collection.children[s_col.name].exclude = False
+#    # привести collection к объекту Collection
+#    if isinstance(collection, str):
+#        collection = bpy.data.collections.get(collection)
+#    if collection is None:
+#        return False
 
-        #select objects
-        bpy.ops.object.select_all(action='DESELECT')
+    mod = obj.modifiers.get("Geometry Input")
+    if not mod:
+        return False
 
-        col_objs = bpy.data.collections[s_col.name].objects
-        for ob in col_objs:
-            bpy.data.objects[ob.name].select_set(True)
-        bpy.context.view_layer.objects.active = col_objs[0]
-        bpy.ops.view3d.view_selected(use_all_regions=True)
+#    # получить Socket_3
+#    try:
+#        val = mod["Socket_3"]
+#    except Exception:
+#        val = getattr(mod, "Socket_3", None)
+
+#    if isinstance(val, bpy.types.Collection):
+#        return val == collection
+#    if isinstance(val, str):
+#        return val == collection.name
+#    name = getattr(val, "name", None)
+    val = mod["Socket_3"]
+    print(val)
+    if val == collection:
+        return True
     else:
-        cont_col = cont_ob.users_collection[0]
+        print('falseee')
+        return False
+    #return name == collection.name if name else False
+
+
+def get_collection(self, context):
+    is_edit = self.is_edit
+    
+    ctx = bpy.context
+    obj = ctx.object
+    
+    if is_edit:
+        if obj.type == 'EMPTY' and context.object.instance_collection != None:
+            print('is EMPTY')    
+            #get instance col name
+            s_col = obj.instance_collection
+
+            #Unhide Collection
+            vl_name = bpy.context.view_layer.name
+
+            bpy.context.scene.view_layers[vl_name].layer_collection.children[s_col.name].exclude = False
+
+            #select objects
+            bpy.ops.object.select_all(action='DESELECT')
+
+            col_objs = bpy.data.collections[s_col.name].objects
+            for ob in col_objs:
+                bpy.data.objects[ob.name].select_set(True)
+            bpy.context.view_layer.objects.active = col_objs[0]
+            bpy.ops.view3d.view_selected(use_all_regions=True)
+    #    else:
+    #        cont_col = cont_ob.users_collection[0]
+    #        if cont_col != context.scene.collection:
+    #            vl_name = bpy.context.view_layer.name
+
+    #            bpy.context.scene.view_layers[vl_name].layer_collection.children[cont_col.name].exclude = True
+    #            
+    #            bpy.ops.object.select_all(action='DESELECT')
+    #            for ob in bpy.data.objects:
+    #                if ob.type == 'EMPTY':
+    #                    if ob.instance_collection:
+    #                        #print(ob.instance_collection.name)
+    #                        if ob.instance_collection.name == cont_col.name:
+    #                            bpy.data.objects[ob.name].select_set(True)
+    #                            bpy.context.view_layer.objects.active = ob
+    #                            bpy.ops.view3d.view_selected(use_all_regions=True)
+        else:
+
+
+            if not obj:
+                raise RuntimeError("Нет активного объекта")
+
+            # получить модификатор Geometry Input
+            mod_name = "Geometry Input"
+            try:
+                mod = obj.modifiers[mod_name]
+            except KeyError:
+                raise RuntimeError(f"Модификатор '{mod_name}' не найден")
+
+            # проверить Socket_6 на "Collection"
+            if mod["Socket_6"] != 1:
+                raise RuntimeError(f"Socket_6 не равен 'Collection' (текущее значение: {mod['Socket_6']})")
+
+            # получить коллекцию из Socket_3
+            coll_val = mod["Socket_3"]
+            if isinstance(coll_val, bpy.types.Collection):
+                collection = coll_val
+            elif isinstance(coll_val, str):
+                collection = bpy.data.collections.get(coll_val)
+            else:
+                collection = None
+
+            if not collection:
+                raise RuntimeError(f"Не удалось разрешить коллекцию из Socket_3 (значение: {coll_val})")
+
+            # снять exclude во view layer (рекурсивно)
+            def find_layer_collection(layer_col, target):
+                if layer_col.collection == target:
+                    return layer_col
+                for child in layer_col.children:
+                    found = find_layer_collection(child, target)
+                    if found:
+                        return found
+                return None
+
+            lc = find_layer_collection(ctx.view_layer.layer_collection, collection)
+            if lc:
+                lc.exclude = False
+
+            # выделяем все объекты коллекции
+            for o in list(ctx.selected_objects):
+                o.select_set(False)
+            for o in collection.all_objects:
+                o.select_set(True)
+            
+            bpy.ops.view3d.view_selected(use_all_regions=True)
+            bpy.context.view_layer.objects.active  = bpy.context.selected_objects[0]
+            return collection.name
+
+    else:
+        cont_col = obj.users_collection[0]
         if cont_col != context.scene.collection:
             vl_name = bpy.context.view_layer.name
 
@@ -151,13 +327,17 @@ def get_collection(self, context):
             
             bpy.ops.object.select_all(action='DESELECT')
             for ob in bpy.data.objects:
-                if ob.type == 'EMPTY':
+                if ob.type == 'EMPTY' or geom_input_uses_collection(ob, cont_col):
                     if ob.instance_collection:
                         #print(ob.instance_collection.name)
                         if ob.instance_collection.name == cont_col.name:
                             bpy.data.objects[ob.name].select_set(True)
-                            bpy.context.view_layer.objects.active = ob
-                            bpy.ops.view3d.view_selected(use_all_regions=True)
+                    else:
+                        if geom_input_uses_collection(ob, cont_col):
+                            bpy.data.objects[ob.name].select_set(True)
+                            
+                    bpy.context.view_layer.objects.active = ob
+                    bpy.ops.view3d.view_selected(use_all_regions=True)
 
 class GET_OT_Collection(Operator):
     bl_idname = "minstance.get_collection"
@@ -165,6 +345,7 @@ class GET_OT_Collection(Operator):
     bl_description = "Unhide collection of active instance"
     bl_options = {'REGISTER', 'UNDO'}
     
+    is_edit : bpy.props.BoolProperty(name = 'Is_edit', default = False)
 
     
     @classmethod
@@ -177,7 +358,7 @@ class GET_OT_Collection(Operator):
         get_collection(self, context)
         return {'FINISHED'}
 
-#Open Linked File
+#Open Linced File
 def open_linked(self, context):
     open_f = self.open_f
     
@@ -245,18 +426,8 @@ class RELOAD_OT_Linked(Operator):
 
 #Get Path Of Selected Object
 def get_addon_folder(add_buffer):
-    addon_name = bl_info['name']
-    s_path =''
-    #s_path =  bpy.path.abspath(bpy.utils.user_resource("SCRIPTS") + '\\Master_Instance-main\\')
-    #modu = addon_utils.modules()
-    
-    #print(modu)
     for mod in addon_utils.modules():
-        #print(mod)
-        #print(mod.bl_info['name'])
-        
-        if mod.bl_info['name'] == 'Instance Master':
-            #print("TRUUUUUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+        if mod.bl_info['name'] == addon_name:
             filepath = mod.__file__
             #print (filepath)
             s_path = filepath[:-len(bpy.path.basename(filepath))]
@@ -265,44 +436,65 @@ def get_addon_folder(add_buffer):
             pass
     if add_buffer:
        s_path += 'MasterInstance_Buffer.txt'   
-    #s_path = bpy.path.abspath(s_path)
-    #print(s_path)    
+        
     return s_path
+
+
+
+def save_object_source(self,context):
+    # проверки
     
-def get_object_path(self, context):
+    TAG = "MasterInstance_TAG_v1"
+    filename = "master_instance.json"
+    if not bpy.data.is_saved:
+        raise RuntimeError("Current .blend must be saved before saving instance info.")
     obj = context.object
-    
-    
-    
-    o_tag = 'MasterInstance_TAG'
-    o_path = bpy.data.filepath
-    
-    cols_to_get = []
-    objs = context.selected_objects
-    for obj in objs:
-        if obj.users_collection[0].name not in cols_to_get:
-            if obj.users_collection[0] != context.scene.collection:
-                cols_to_get.append(obj.users_collection[0].name)
-                
-    o_col_name = cols_to_get
-    
-    o_buffer = [o_tag,o_path,o_col_name]
-    o_buffer = str(o_buffer)
-    
-    s_path = get_addon_folder(True)
-    
-    
-    file_path = s_path
-    
+    if obj is None:
+        raise RuntimeError("No active object in context.")
 
-    with open(file_path, "w") as file:
-        file.write(o_buffer)
+    # данные
+    blend_path = bpy.path.abspath(bpy.data.filepath)
+    collections = [c.name for c in obj.users_collection]  # сохранение всех коллекций
+    data = {
+        "tag": TAG,
+        "blend_path": blend_path,
+        "collections": collections,
+        "object_name": obj.name,
+        "timestamp": int(time.time()),
+        "blender_version": bpy.app.version_string
+    }
 
+    # каталог для хранения — в user config/ master_instance (кроссплатформенно и стабильно)
+    base_dir = os.path.join(bpy.utils.user_resource('CONFIG'), "master_instance")
+    os.makedirs(base_dir, exist_ok=True)
+    file_path = os.path.join(base_dir, filename)
+
+    # атомарная запись: tmp -> replace (меньше шанса порчи файла)
+    fd, tmp_path = tempfile.mkstemp(prefix=filename, dir=base_dir, text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, file_path)
+    except Exception:
+        # попытка удалить временный файл, если что-то пошло не так
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+        raise
+
+    # дополнительно — положить JSON в буфер обмена для быстрого доступа
+    try:
+        bpy.context.window_manager.clipboard = json.dumps(data, ensure_ascii=False)
+    except Exception:
+        pass
+
+    return file_path
             
 class Get_OT_Object_Path(Operator):
     bl_idname = "minstance.get_obj_path"
-    bl_label = "Copy Collections As Instances"
-    bl_description = "Copy selected objects as instances"
+    bl_label = "Copy Collection As Instance"
+    bl_description = "Copy active object as instance"
     #bl_options = {'REGISTER', 'UNDO'}
     
 
@@ -316,280 +508,96 @@ class Get_OT_Object_Path(Operator):
                 if context.object.users_collection[0] != context.scene.collection:
                     if bpy.data.is_saved:
                         chek = True
-        return chek 
+        return chek
 
         
     def execute(self, context):
-        get_object_path(self, context)
+        save_object_source(self, context)
         return {'FINISHED'}
 
 #Paste Instance
+TAG = "MasterInstance_TAG_v1"
+FILENAME = "master_instance.json"
 
-def link_collection(c_path,c_name):
-    
-    master_collection = bpy.context.scene.collection
-    
-    #blendFile = c_path
 
-    ref_cols = c_name
-    print(ref_cols)
+def get_storage_file_path():
+    base_dir = os.path.join(
+        bpy.utils.user_resource('CONFIG'),
+        "master_instance"
+    )
+    return os.path.join(base_dir, FILENAME)
+
+def link_collection_from_file(context):
+    file_path = get_storage_file_path()
+
+    if not os.path.exists(file_path):
+        raise RuntimeError("Master instance file not found")
+
+    # читаем JSON
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if data.get("tag") != TAG:
+        raise RuntimeError("Invalid master instance tag")
+
+    blend_path = data["blend_path"]
+    collections = data["collections"]
+
+    if not os.path.exists(blend_path):
+        raise RuntimeError("Source .blend file not found")
+
+    # берём первую сохранённую коллекцию
+    col_name = collections[0]
+
+    # линк ТОЛЬКО нужной коллекции
+    with bpy.data.libraries.load(blend_path, link=True) as (data_from, data_to):
+        if col_name not in data_from.collections:
+            raise RuntimeError(f"Collection '{col_name}' not found in source file")
+        data_to.collections = [col_name]
+
+    linked_col = data_to.collections[0]
+
+    # создаём instance
+    instance = bpy.data.objects.new(linked_col.name, None)
+    instance.instance_type = 'COLLECTION'
+    instance.instance_collection = linked_col
+
+    context.scene.collection.objects.link(instance)
+
     bpy.ops.object.select_all(action='DESELECT')
-
-#    col_for_instance = []
-#    with bpy.data.libraries.load(c_path, link = True) as (data_from, data_to):
-#        
-#        #data_to.collections = data_from.collections
-#        for col in data_from.collections:
-#            if col in ref_cols:
-#                print(col)
-#                data_to.collections.append(col)
-#                    
-#    
-#    print(data_to.collections)
-    
-#    bpy.ops.wm.link(c_path, filename=  ref_cols[0])  
-
-    # append active collections
-    
-    with bpy.data.libraries.load(c_path, link = True) as (data_from, data_to):
-        data_to.collections = [
-            name for name in data_from.collections if name in ref_cols]
-        #print(data_to.collections)
-        
-    # link appended coolections to master collection
-    for col in data_to.collections:
-        print(col)
-        instance = bpy.data.objects.new(col.name, None)
-        instance.instance_type = 'COLLECTION'
-        instance.instance_collection = col
-        master_collection.objects.link(instance)
-        instance.select_set(True)
-        bpy.context.view_layer.objects.active = instance     
-            
-        print(col)
-        #bpy.context.scene.collection.children.link(collection)
-        #link_collection_to_collection(blendFileName, collection)
+    instance.select_set(True)
+    context.view_layer.objects.active = instance
         
         
-        #print('before')
-        #print(data_from.collections)
-        #print(data_to.collections)
-    #print('After')
-    
-    #print(data_from.collections)
-    #print(data_to.collections)
-#        print(data_from.collections)
-#        i = 0
-#        for col in data_from.collections:
-#            print(col)
-#            if col in ref_cols:
-#                col_for_instance.append(col)
-#                #data_to.collections.append(col)
-#                if col not in bpy.data.collections:
-#                    data_to.collections.append(col)
-#                    print('Exist')
-#                
-#                    
-#                    
-#    for colection in col_for_instance:
-#        instance = bpy.data.objects.new(colection, None)
-#        instance.instance_type = 'COLLECTION'
-#        instance.instance_collection = bpy.data.collections[colection]
-#        master_collection.objects.link(instance)
-#        instance.select_set(True)
-#        bpy.context.view_layer.objects.active = instance 
-           
-    
-    #bpy.data.libraries.load(c_path) 
-#    with bpy.data.libraries.load(c_path) as (data):
-#        data = data.collection
-     
-#    for col in  data_to.collections:
-#        print(col)  
-#    bpy.ops.object.select_all(action='DESELECT')
-#    for collection in data_to.collections:
-#        print(collection.name)
-#        col_name = collection.name
-#        i = 0
-#        col_ind = 0
-#        for col in data_to.collections:
-#            if col.name in ref_cols:
-#                col_ind = i
-#                
-#                new_coll = data_to.collections[col_ind]
-#                instance = bpy.data.objects.new(new_coll.name, None)
-#                instance.instance_type = 'COLLECTION'
-#                instance.instance_collection = new_coll
-#                master_collection.objects.link(instance)
-#                instance.select_set(True)
-#                bpy.context.view_layer.objects.active = instance 
-#            
-#            i +=1
-#            #print(col_name)
-#            #print(col.name)
-                
-     
-
-          
-def try_convert_to_list(list):
-    try:
-        value_list = eval(list)
-    except:
-        return None
-    
-    
-    return value_list
-
-def paste_object(self, context):
-    file_path = get_addon_folder(True)
-    
-    with open(file_path, "r") as file:
-        clipboard = file.read()   
-    clipboard = try_convert_to_list(clipboard)
-            
-    if isinstance(clipboard, list):   
-        if clipboard[0] == 'MasterInstance_TAG':
-            
-            print(clipboard)
-            c_path = clipboard[1]
-            c_name = clipboard[2]
-            if c_path != bpy.data.filepath:
-                link_collection(c_path,c_name)
-            
-            else:
-                self.report({'ERROR'}, 'Cannot link instance, as its source is in the same file')
-        else:
-            print("Not Intance")
-    else:
-        print("Not LIst")
-        
-        
-class Paste_OT_Object_As_Intance(Operator):
+class Paste_OT_Object_As_Instance(bpy.types.Operator):
     bl_idname = "minstance.paste_obj_as_instance"
     bl_label = "Paste Collection As Instance"
-    bl_description = "Paste copyed collection as instance"
-    
+    bl_description = "Paste linked collection instance"
+
     @classmethod
     def poll(cls, context):
-        
-        return True
-        
+        path = get_storage_file_path()
+        if not os.path.exists(path):
+            return False
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            return False
+
+        return (
+            isinstance(data, dict)
+            and data.get("tag") == TAG
+            and os.path.exists(data.get("blend_path", ""))
+        )
+
     def execute(self, context):
-        paste_object(self, context)
-        return {'FINISHED'}    
+        link_collection_from_file(context)
+        return {'FINISHED'}
     
-        
-class Save_OT_File(Operator):
-    bl_idname = "minstance.save_file"
-    bl_label = "Save File"
-    bl_description = "Don't forget to save Blend file before copy. Press to Save"
-    
-    @classmethod
-    def poll(cls, context):                        
-        return bpy.data.is_saved
-        
-    def execute(self, context):
-        paste_object(self, context)
-        return {'FINISHED'}    
-
-#Addon Updater
-def update_addon(self):
-    #get raw from git
-    url = 'https://raw.githubusercontent.com/Mandrew3d/Master_Instance/main/__init__.py'
-    response = requests.get(url, stream=True)
-    
-#    #YD
-#    base_url = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?'
-#    public_key = 'https://disk.yandex.ru/d/zi8DD3Duq8qA-g'  # Сюда вписываете вашу ссылку
-
-#    # Получаем загрузочную ссылку
-#    final_url = base_url + urlencode(dict(public_key=public_key))
-#    response = requests.get(final_url)
-#    download_url = response.json()['href']
-
-#    # Загружаем файл и сохраняем его
-#    response = requests.get(download_url, stream=True)
-    
-    addon_path = get_addon_folder(False)
-    path = os.path.join(addon_path, '__init__.py')
-    
-    if response.status_code == 200:
-
-        #read instaled addon init        
-        f_path = path
-
-        file = open(f_path, "r")
-        
-        inst_addon = file.read()
-        file.close()   
-        
-        #read git addon init   
-        git_addon = response.text
-
-        
-        t1 = inst_addon
-        t2 = git_addon
-        
-        if t1 == t2:
-            self.report({'INFO'}, 'Is the latest version')   
-            #print('Git = Inst')
-        else:
-            
-            
-            filePath = addon_path
-
-            
-            newFile = open(os.path.join(filePath, "__init__UPD.py"), "w")
-            newFile.write(git_addon)
-            newFile.close()
-
- 
-            
-            os.replace(os.path.join(filePath, "__init__UPD.py"), os.path.join(filePath, "__init__.py"))
-            bpy.ops.script.reload()
-            #sys.modules['Master_Instance-main'].update_addon() 
-    else:
-        print('Error downloading file')
-         
-class MInstance_Addon_Updater(Operator):
-    bl_idname = "minstance.addon_upd"
-    bl_label = "Update Addon"
-    bl_description = "Update Addon from Github"
-    #bl_options = {'REGISTER', 'UNDO'} 
-    
-        
-    def execute(self, context):
-        update_addon(self)
-        return {'FINISHED'}   
- 
-
-#Menu Settings
-class VIEW3D_MT_InstanceM_Settings(bpy.types.Menu):
-    bl_label = "Instance Master Settings"
-    
-    def draw(self, context):
-        
-        layout = self.layout
-
-        scene = context.scene
-
-        layout.label(text="Settings:")
-        
-        
-        layout.separator()
-        col = layout.column()
-         
-        col.operator("minstance.addon_upd", icon = "URL") 
-         
-        op = col.operator(
-            'wm.url_open',
-            text='Contact Me',
-            icon='CURRENT_FILE'
-            )
-        op.url = 'https://t.me/Mandrew3d'
-                
 class MINSTANCE_PT_Operators(bpy.types.Panel):
-    addon_name = 'Master_Instance-main'
+    
     bl_label = addon_name
     bl_category = "M-Instance"
     bl_space_type = 'VIEW_3D'
@@ -610,15 +618,23 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
         
         col_name = 'Hide Collection'
         col_icon = 'HIDE_ON'
+        col_edit = False 
+        
+        if has_geometry_input_modifier():
+            col_name = 'Edit: '
+            col_edit = True
+            
         if bpy.context.object:
             if bpy.context.object.type == 'EMPTY':
                 if bpy.context.object.instance_collection != None:
+                    col_edit = True
                     col_name = bpy.context.object.instance_collection.name
                     col_name = 'Edit: ' + col_name
                     col_icon = "EDITMODE_HLT"
-
-        col.operator("minstance.get_collection", icon = col_icon, text = col_name) 
-
+       
+            
+        edit = col.operator("minstance.get_collection", icon = col_icon, text = col_name) 
+        edit.is_edit = col_edit
         
         layout.separator()
         layout.label(text="Linked Instances:")
@@ -635,7 +651,9 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
         col.operator("minstance.reload_linked", icon = "FILE_REFRESH")  
         
         col = layout.column(align = True)
-
+        if bpy.data.is_saved:
+            if bpy.data.is_dirty:
+                col.label(text='Dont Forget to save Blendfile', icon = 'ERROR')
         #col_name = context.object.users_collection[0]
         c_text = "Save Blend File First"
         if bpy.data.is_saved:
@@ -644,38 +662,12 @@ class MINSTANCE_PT_Operators(bpy.types.Panel):
                 if bpy.context.object.users_collection:
                     if bpy.context.object.users_collection[0] != context.scene.collection:
                         col_name = context.object.users_collection[0]
-                        c_text = "Get '" + col_name.name + "' Collection"
+                        c_text = "Copy '" + col_name.name + "' As Instance"
                     else:
                         c_text = "'Scene Collection' Cannot Be Instanced"
-        #c_text = ''
-        row = col.row(align = True)
-        row.operator("minstance.get_obj_path", icon = "COPYDOWN", text = c_text)  
-        if bpy.data.is_saved:
-            if bpy.data.is_dirty:
-                row.operator("minstance.save_file", icon = "ERROR", text = '')  
-        
-        file_path = get_addon_folder(True)
-        #file_path = bpy.path.abspath(bpy.utils.user_resource("SCRIPTS") + '\\Master_Instance-main\\MasterInstance_Buffer.txt')
-        
-        with open(file_path, "r") as file:
-            clipboard = file.read()   
-        clipboard = try_convert_to_list(clipboard)
-        c_name = 'No Object in Copy'
-        if clipboard is not None:
-            c_name = clipboard[2]                        
-        #c_name = ''
-        text = "Link '" + str(c_name) + "' Collection"
-        #col.alert  = True
-        col.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
-        
-        
-        #settings
-        row = layout.row()
-        row.menu("VIEW3D_MT_InstanceM_Settings", icon = "PREFERENCES", text = '' )
-        ver = bl_info.get('version')
-        ver = str(ver[0])+('.')+str(ver[1])
-        
-        row.label(text = 'Version: ' + ver)  
+                        
+        col.operator("minstance.get_obj_path", icon = "COPYDOWN", text = c_text)  
+        col.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN")  
 #Menu
 # menu containing all tools
 class VIEW3D_MT_object_mode_minstance(bpy.types.Menu):
@@ -697,15 +689,21 @@ class VIEW3D_MT_object_mode_minstance(bpy.types.Menu):
         
         col_name = 'Hide Collection'
         col_icon = 'HIDE_ON'
+        col_edit = False 
+        if has_geometry_input_modifier():
+            col_name = 'Edit: '
+            col_edit = True
         if bpy.context.object:
             if bpy.context.object.type == 'EMPTY':
                 if bpy.context.object.instance_collection != None:
+                    col_edit = True
                     col_name = bpy.context.object.instance_collection.name
                     col_name = 'Edit: ' + col_name
                     col_icon = "EDITMODE_HLT"
 
-        col.operator("minstance.get_collection", icon = col_icon, text = col_name) 
         
+        edit = col.operator("minstance.get_collection", icon = col_icon, text = col_name) 
+        edit.is_edit = col_edit
         
         layout.label(text="    Linked Instances:")
         
@@ -721,73 +719,38 @@ class VIEW3D_MT_object_mode_minstance(bpy.types.Menu):
         col = layout.column() 
         col.operator("minstance.reload_linked", icon = "FILE_REFRESH")  
         
-             
 # draw function for integration in menus
 def menu_func_minstance(self, context):
-    layout = self.layout
-    layout.menu("VIEW3D_MT_object_mode_minstance", icon = "OUTLINER_OB_GROUP_INSTANCE" )
-    #self.layout.separator()
-    #Copy Paste
-
-    #col_name = context.object.users_collection[0]
-    c_text = "Save Blend File First"
-    if bpy.data.is_saved:
-        c_text = "Select Any Object"    
-        if bpy.context.active_object is not None and len(context.selected_objects)>0:
-            if bpy.context.object.users_collection:
-                if bpy.context.object.users_collection[0] != context.scene.collection:
-                    col_name = context.object.users_collection[0]
-                    c_text = "Get  '" + col_name.name + "' Collection"
-                else:
-                    c_text = "'Scene Collection' Cannot Be Instanced"
-    
-    #row = col.row(align = True)
-    layout.operator("minstance.get_obj_path", icon = "COPYDOWN", text = c_text)                     
-    
-    text = 'Link Collection'
-    layout.operator("minstance.paste_obj_as_instance", icon = "PASTEDOWN", text = text)  
-    self.layout.separator() 
+    self.layout.menu("VIEW3D_MT_object_mode_minstance", icon = "OUTLINER_OB_GROUP_INSTANCE" )
+    self.layout.separator()
+      
         
-
-class MInstance_Preferences(bpy.types.AddonPreferences):
-    bl_idname = __name__
-
- 
-    def draw(self, context):
-        layout = self.layout
-        row = layout.row()
-        row.operator("minstance.addon_upd", icon = "URL")
-                   
+           
 classes = [
     MAKE_OT_Instance,
     GET_OT_Collection,
     OPEN_OT_Linked,
     RELOAD_OT_Linked,
     Get_OT_Object_Path,
-    Save_OT_File,
-    Paste_OT_Object_As_Intance,
-       
+    Paste_OT_Object_As_Instance,
+        
     MINSTANCE_PT_Operators,
-    MInstance_Addon_Updater,
-    VIEW3D_MT_InstanceM_Settings,
     VIEW3D_MT_object_mode_minstance,
-    MInstance_Preferences,
+
         
 ]
 
-
-def register():        
-    #bpy.app.translations.register(__name__, langs)
+def register():
     for cl in classes:
         register_class(cl)
-  
-    bpy.types.VIEW3D_MT_object_context_menu.prepend(menu_func_minstance)        
-                
+    bpy.types.VIEW3D_MT_object_context_menu.prepend(menu_func_minstance)
+
+
 def unregister():
+    bpy.types.VIEW3D_MT_object_context_menu.remove(menu_func_minstance)
     for cl in reversed(classes):
         unregister_class(cl)
-    bpy.types.VIEW3D_MT_object_context_menu.remove(menu_func_minstance)
-    #bpy.app.translations.unregister(__name__)
-    
+
+
 if __name__ == "__main__":
     register()
